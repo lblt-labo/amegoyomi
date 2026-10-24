@@ -89,6 +89,7 @@ main{max-width:560px;margin:0 auto;padding:14px 14px 0}
   <p class="lead">いま降っている雨をえらぶと、ぴったりの「雨の名前」が見つかります。</p>
   <div id="groups"></div>
   <section class="result" aria-live="polite">
+    <div class="group" style="text-align:left"><h2>紙の仕上がり</h2><div class="chips" id="themeBox"></div></div>
     <div class="cardwrap"><canvas id="card" width="1080" height="1500" role="img" aria-label="雨の和名カード"></canvas></div>
     <div class="row">
       <button class="btn sub" id="bNext" type="button">🔁 ほかの雨の名前を見る</button>
@@ -109,6 +110,7 @@ main{max-width:560px;margin:0 auto;padding:14px 14px 0}
       <li>「季節」「体感温度」「降り方」「時間帯」をタップして選びます。季節と時間帯は今の日時から自動で選ばれます。</li>
       <li>選んだ条件にいちばん近い雨の名前が、下のカードに表示されます。</li>
       <li>「ほかの雨の名前を見る」で、近い候補を順にめぐれます。</li>
+      <li>「紙の仕上がり」で、生成り・雨雲・藍から好みの色を選べます。選んだ色のまま画像になります。</li>
     </ol>
     <h3>画像の保存とシェア</h3>
     <ol>
@@ -283,79 +285,158 @@ function init() {
     return [wa, sei];
   }
 
+  /* ---------- 紙のテーマ ---------- */
+  var THEMES = {
+    kinari: { label: '生成り', mark: '○', bg: '#f3ead6', speck: '120,95,60', fiber: '255,250,235', vig: 'rgba(110,80,40,0.28)', ink: '#222222', main: '#1f2a44', sub: '#444444', frame: '#1f2a44', seal: '#a8321f', sealText: '#f7ecd4' },
+    ame:    { label: '雨雲（ブルーグレー）', mark: '◐', bg: '#c9d1d8', speck: '60,78,98', fiber: '255,255,255', vig: 'rgba(40,55,75,0.30)', ink: '#1b2530', main: '#14263d', sub: '#303e4d', frame: '#27384f', seal: '#9f2f1d', sealText: '#f3ece0' },
+    ai:     { label: '藍（あい）', mark: '●', bg: '#1f2a44', speck: '255,255,255', fiber: '255,255,255', vig: 'rgba(0,0,0,0.38)', ink: '#f3ead6', main: '#fbf3de', sub: '#d9cfb6', frame: '#e6dcc0', seal: '#c4402d', sealText: '#fbf3de' }
+  };
+  var themeKey = sget('ame_theme');
+  if (!THEMES[themeKey]) themeKey = 'kinari';
+
   /* ---------- カード描画（縦書きを自前レイアウト） ---------- */
   var FONT = '"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP","MS PMincho",serif';
   var SMALL = 'ぁぃぅぇぉっゃゅょゎァィゥェォッャュョ';
+  var PAREN = '（）(）「」';
+  function isParen(ch) { return '（）()「」'.indexOf(ch) >= 0; }
+  function advOf(ch, size, step) { return isParen(ch) ? step * 0.62 : step; }
   function vch(ctx, ch, cx, y, size) {
     ctx.font = size + 'px ' + FONT;
-    if ('、。，．'.indexOf(ch) >= 0) { ctx.fillText(ch, cx + size * 0.55, y - size * 0.5); return; }
-    if (SMALL.indexOf(ch) >= 0) { ctx.fillText(ch, cx + size * 0.1, y - size * 0.1); return; }
+    var s = size;
+    if (ch === '。') { /* 縦書き: セルの右上に小さな丸 */
+      ctx.save(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = s * 0.055;
+      ctx.beginPath(); ctx.arc(cx + s * 0.27, y - s * 0.27, s * 0.115, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); return;
+    }
+    if (ch === '、') { /* セルの右上に短い払い */
+      ctx.save(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = s * 0.07; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(cx + s * 0.2, y - s * 0.4); ctx.quadraticCurveTo(cx + s * 0.38, y - s * 0.34, cx + s * 0.27, y - s * 0.14); ctx.stroke(); ctx.restore(); return;
+    }
+    if (ch === '（' || ch === '(') { /* ︵ */
+      ctx.save(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = s * 0.05; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(cx - s * 0.36, y + s * 0.2); ctx.quadraticCurveTo(cx, y - s * 0.22, cx + s * 0.36, y + s * 0.2); ctx.stroke(); ctx.restore(); return;
+    }
+    if (ch === '）' || ch === ')') { /* ︶ */
+      ctx.save(); ctx.strokeStyle = ctx.fillStyle; ctx.lineWidth = s * 0.05; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(cx - s * 0.36, y - s * 0.2); ctx.quadraticCurveTo(cx, y + s * 0.22, cx + s * 0.36, y - s * 0.2); ctx.stroke(); ctx.restore(); return;
+    }
+    if (SMALL.indexOf(ch) >= 0) { ctx.fillText(ch, cx + s * 0.12, y - s * 0.12); return; }
     if ('ー〜―'.indexOf(ch) >= 0) { ctx.save(); ctx.translate(cx, y); ctx.rotate(Math.PI / 2); ctx.fillText(ch, 0, 0); ctx.restore(); return; }
     ctx.fillText(ch, cx, y);
   }
   function vtext(ctx, text, cx, top, size, step) {
-    var y = top + size / 2;
-    for (var i = 0; i < text.length; i++) { vch(ctx, text[i], cx, y, size); y += step || size * 1.12; }
-  }
-  function wrap(text, n) {
-    var cols = [], cur = '';
+    step = step || size * 1.12;
+    var y = top;
     for (var i = 0; i < text.length; i++) {
-      var c = text[i];
-      if (cur.length >= n && '、。'.indexOf(c) < 0) { cols.push(cur); cur = ''; }
-      cur += c;
+      var ch = text[i], a = advOf(ch, size, step);
+      vch(ctx, ch, cx, y + (isParen(ch) ? a / 2 : size / 2), size);
+      y += a;
+    }
+  }
+
+  /* 文節を意識した改行：読点・句点で区切り、長い文節は「ひらがな→漢字/カナ」の境目（文節の頭）で折る */
+  var NOSTART = '、。，．ー〜―' + SMALL + 'ゝゞ）)」';
+  function isHira(c) { return c >= '\u3041' && c <= '\u309f'; }
+  function isHead(c) { return (c >= '\u4e00' && c <= '\u9fff') || (c >= '\u30a1' && c <= '\u30fa') || c === '々'; }
+  function splitChunk(c, N, st) {
+    var out = [];
+    while (c.length > N) {
+      var cut = -1, i;
+      for (var pass = 0; pass < 2 && cut < 0; pass++) {
+        for (i = N; i >= Math.ceil(N * 0.4); i--) {
+          if (isHira(c[i - 1]) && isHead(c[i]) && NOSTART.indexOf(c[i]) < 0 && (pass === 1 || 'をにはでがもへとの、'.indexOf(c[i - 1]) >= 0)) { cut = i; break; }
+        }
+      }
+      if (cut < 0) { st.hard++; cut = N; while (cut > 1 && NOSTART.indexOf(c[cut]) >= 0) cut--; }
+      st.splits++; out.push(c.slice(0, cut)); c = c.slice(cut);
+    }
+    if (c) out.push(c);
+    return out;
+  }
+  function pack(text, N) {
+    var st = { hard: 0, splits: 0 }, chunks = text.match(/[^、。]*[、。]?/g) || [], pieces = [], i, cols = [], cur = '';
+    for (i = 0; i < chunks.length; i++) if (chunks[i]) pieces = pieces.concat(splitChunk(chunks[i], N, st));
+    for (i = 0; i < pieces.length; i++) {
+      if (cur && cur.length + pieces[i].length > N) { cols.push(cur); cur = ''; }
+      cur += pieces[i];
     }
     if (cur) cols.push(cur);
-    return cols;
+    return { cols: cols, cost: st.splits * 10 + st.hard * 100 + cols.length };
+  }
+  function layout(text, maxN) {
+    var N, res, best = null;
+    for (N = Math.max(8, Math.ceil(text.length / 5)); N <= maxN; N++) {
+      res = pack(text, N);
+      if (!best || res.cost < best.cost) best = res;
+    }
+    return (best || pack(text, maxN)).cols;
   }
   function rng(seed) { var s = seed; return function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
 
   function drawCard() {
     var cv = $('card'); if (!cv) return;
     var ctx = cv.getContext('2d'); if (!ctx) return;
-    var W = 1080, H = 1500, r = cands[idx]; if (!r) return;
+    var W = 1080, H = 1500, r = cands[idx], T = THEMES[themeKey]; if (!r) return;
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = '#f3ead6'; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = T.bg; ctx.fillRect(0, 0, W, H);
     var rd = rng(20261024), i;
-    for (i = 0; i < 5000; i++) { ctx.fillStyle = 'rgba(' + (120 + rd() * 60 | 0) + ',' + (95 + rd() * 50 | 0) + ',60,' + (rd() * 0.09).toFixed(3) + ')'; ctx.fillRect(rd() * W, rd() * H, 1 + rd() * 2.5, 1 + rd() * 2.5); }
+    for (i = 0; i < 5000; i++) { ctx.fillStyle = 'rgba(' + T.speck + ',' + (rd() * 0.09).toFixed(3) + ')'; ctx.fillRect(rd() * W, rd() * H, 1 + rd() * 2.5, 1 + rd() * 2.5); }
     ctx.lineWidth = 1;
-    for (i = 0; i < 380; i++) { var fx = rd() * W, fy = rd() * H; ctx.strokeStyle = 'rgba(255,250,235,' + (0.2 + rd() * 0.3).toFixed(2) + ')'; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.quadraticCurveTo(fx + rd() * 30 - 15, fy + rd() * 30 - 15, fx + rd() * 60 - 30, fy + rd() * 60 - 30); ctx.stroke(); }
+    for (i = 0; i < 380; i++) { var fx = rd() * W, fy = rd() * H; ctx.strokeStyle = 'rgba(' + T.fiber + ',' + (0.12 + rd() * 0.25).toFixed(2) + ')'; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.quadraticCurveTo(fx + rd() * 30 - 15, fy + rd() * 30 - 15, fx + rd() * 60 - 30, fy + rd() * 60 - 30); ctx.stroke(); }
     var g = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.78);
-    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(110,80,40,0.28)');
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, T.vig);
     ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = '#1f2a44'; ctx.lineWidth = 4; ctx.strokeRect(46, 46, W - 92, H - 92);
+    ctx.strokeStyle = T.frame; ctx.lineWidth = 4; ctx.strokeRect(46, 46, W - 92, H - 92);
     ctx.lineWidth = 1.5; ctx.strokeRect(60, 60, W - 120, H - 120);
 
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#222';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     var d = dateTexts();
-    vtext(ctx, d[0], W - 108, 150, 30, 36);
-    ctx.fillStyle = '#444'; vtext(ctx, d[1], W - 150, 150, 26, 31);
+    ctx.fillStyle = T.ink; vtext(ctx, d[0], W - 108, 150, 30, 36);
+    ctx.fillStyle = T.sub; vtext(ctx, d[1], W - 150, 150, 26, 31);
 
-    ctx.fillStyle = '#1f2a44';
+    ctx.fillStyle = T.main;
     var ns = Math.min(170, Math.floor(860 / r[0].length)), nx = W - 270;
     vtext(ctx, r[0], nx, 190, ns, ns * 1.08);
-    ctx.fillStyle = '#333';
+    ctx.fillStyle = T.sub;
     var rx = nx - ns / 2 - 50;
     vtext(ctx, '（' + r[1] + '）', rx, 190, 40, 44);
-    ctx.fillStyle = '#222';
-    var cols = wrap(r[6], 15), dx = rx - 100;
+    ctx.fillStyle = T.ink;
+    var cols = layout(r[6], 18), dx = rx - 100;
     cols.forEach(function (c, k) { vtext(ctx, c, dx - k * 66, 190, 40, 46); });
 
-    ctx.fillStyle = '#555';
-    var cond = [sel.season, sel.temp, sel.type, sel.time].join('・');
-    vtext(ctx, cond, 135, 190, 28, 32);
+    ctx.fillStyle = T.sub;
+    vtext(ctx, [sel.season, sel.temp, sel.type, sel.time].join('・'), 135, 190, 28, 32);
 
     var sx = 120, sy = H - 330, ss = 130;
-    ctx.fillStyle = '#a8321f'; ctx.fillRect(sx, sy, ss, ss);
-    ctx.strokeStyle = '#f3ead6'; ctx.lineWidth = 3; ctx.strokeRect(sx + 7, sy + 7, ss - 14, ss - 14);
-    ctx.fillStyle = '#f7ecd4';
+    ctx.fillStyle = T.seal; ctx.fillRect(sx, sy, ss, ss);
+    ctx.strokeStyle = T.sealText; ctx.lineWidth = 3; ctx.strokeRect(sx + 7, sy + 7, ss - 14, ss - 14);
+    ctx.fillStyle = T.sealText;
     vtext(ctx, 'あめ', sx + ss * 0.7, sy + 14, 46, 52);
     vtext(ctx, 'ごよみ', sx + ss * 0.3, sy + 14, 36, 36);
 
-    ctx.fillStyle = '#444'; ctx.font = '28px ' + FONT; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = T.sub; ctx.font = '28px ' + FONT; ctx.textBaseline = 'alphabetic';
     ctx.fillText('あめごよみ　今日の雨をシェアするアプリ', W / 2, H - 100);
 
     cardBlob = null;
     try { cv.toBlob(function (b) { cardBlob = b; }, 'image/png'); } catch (e) {}
+  }
+
+  /* 紙の仕上がり切り替え */
+  function buildThemes() {
+    var box = $('themeBox'); if (!box) return;
+    box.innerHTML = '';
+    Object.keys(THEMES).forEach(function (k) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'chip'; b.textContent = THEMES[k].mark + ' ' + THEMES[k].label;
+      b.setAttribute('aria-pressed', k === themeKey ? 'true' : 'false');
+      b.addEventListener('click', function () {
+        themeKey = k; sset('ame_theme', k);
+        var all = box.querySelectorAll('.chip');
+        for (var i = 0; i < all.length; i++) all[i].setAttribute('aria-pressed', all[i] === b ? 'true' : 'false');
+        if (navigator.vibrate) { try { navigator.vibrate(10); } catch (e) {} }
+        drawCard(); setNote('🎨 紙の仕上がり：' + THEMES[k].label);
+      });
+      box.appendChild(b);
+    });
   }
 
   function refresh() { judge(); drawCard(); setNote(''); }
@@ -479,6 +560,7 @@ function init() {
 
   /* ---------- 起動 ---------- */
   buildChips();
+  buildThemes();
   refresh();
   lock();
   try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawCard); } catch (e) {}
