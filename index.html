@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>あめごよみ - 今日の雨をシェアするアプリ</title>
+<meta name="description" content="今降っている雨の季節や降り方から日本の美しい雨の名前を判定し、縦書き和紙風カードとしてシェアできるアプリ。">
+<meta name="theme-color" content="#1f2a44">
+<meta property="og:type" content="website">
+<meta property="og:title" content="あめごよみ - 今日の雨をシェアするアプリ">
+<meta property="og:description" content="今降っている雨の季節や降り方から日本の美しい雨の名前を判定し、縦書き和紙風カードとしてシェアできるアプリ。">
+<meta property="og:image" content="./ogp.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="あめごよみ - 今日の雨をシェアするアプリ">
+<meta name="twitter:description" content="今降っている雨の季節や降り方から日本の美しい雨の名前を判定し、縦書き和紙風カードとしてシェアできるアプリ。">
+<meta name="twitter:image" content="./ogp.png">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<style>
+:root{--ai:#1f2a44;--sumi:#222;--washi:#f3ead6;--washi2:#e9dcbf;--line:#8a7a5c;--shu:#a8321f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--washi);color:var(--sumi);font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP","MS PMincho",serif;line-height:1.7;padding-bottom:env(safe-area-inset-bottom)}
+header{position:sticky;top:0;z-index:20;background:var(--ai);color:#f7f0de;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;padding-top:calc(8px + env(safe-area-inset-top))}
+.logo b{display:block;font-size:1.35rem;letter-spacing:.2em}
+.logo small{font-size:.68rem;opacity:.9}
+.hbtns{display:flex;gap:6px}
+button{font-family:inherit;cursor:pointer}
+.hb{min-width:44px;min-height:44px;border:1.5px solid #f7f0de;background:transparent;color:#f7f0de;border-radius:10px;font-size:.78rem;padding:4px 8px;line-height:1.2}
+.hb:active,.hb:focus-visible{background:#f7f0de;color:var(--ai)}
+main{max-width:560px;margin:0 auto;padding:14px 14px 0}
+.lead{font-size:.88rem;margin:4px 0 12px}
+.group{margin-bottom:12px;border-bottom:1px dashed var(--line);padding-bottom:10px}
+.group h2{font-size:.95rem;margin:0 0 6px;color:var(--ai);letter-spacing:.15em}
+.group h2::before{content:"◆ ";font-size:.7rem}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:44px;min-width:44px;padding:6px 14px;border:2px solid var(--ai);background:#fbf6e8;color:var(--ai);border-radius:999px;font-size:1rem;transition:transform .12s,background .12s}
+.chip:active{transform:scale(.93)}
+.chip[aria-pressed="true"]{background:var(--ai);color:#fff;font-weight:700;box-shadow:0 0 0 3px #fbf6e8,0 0 0 5px var(--ai)}
+.chip[aria-pressed="true"]::before{content:"✓ "}
+.result{margin-top:10px;text-align:center}
+.cardwrap{background:var(--washi2);padding:8px;border-radius:6px;box-shadow:0 3px 12px rgba(0,0,0,.25)}
+#card{width:100%;height:auto;display:block;border-radius:3px;animation:fade .5s}
+@keyframes fade{from{opacity:.2}to{opacity:1}}
+.row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{flex:1 1 140px;min-height:48px;border:2px solid var(--ai);background:var(--ai);color:#fff;border-radius:12px;font-size:1rem;font-weight:700;padding:8px 10px;transition:transform .12s}
+.btn:active{transform:scale(.96)}
+.btn.sub{background:#fbf6e8;color:var(--ai)}
+.note{min-height:1.6em;margin:10px 0 0;font-size:.88rem;color:var(--ai);font-weight:700;white-space:pre-line}
+.modal{position:fixed;inset:0;z-index:50;background:rgba(20,25,40,.6);display:none;align-items:center;justify-content:center;padding:14px}
+.modal.show{display:flex}
+.panel{background:var(--washi);border:3px double var(--ai);border-radius:12px;max-width:480px;width:100%;max-height:88vh;overflow:auto;padding:16px}
+.panel h2{margin:0 0 8px;color:var(--ai);font-size:1.15rem;letter-spacing:.1em}
+.panel h3{margin:12px 0 2px;font-size:.95rem;color:var(--ai)}
+.panel p,.panel li{font-size:.92rem;margin:2px 0}
+.panel ol{padding-left:1.3em;margin:4px 0}
+.panel label{display:block;font-size:.9rem;margin-top:10px}
+.panel input{width:100%;min-height:48px;font-size:1.3rem;letter-spacing:.5em;text-align:center;border:2px solid var(--ai);border-radius:8px;background:#fffdf5;font-family:inherit}
+.panel .row{margin-top:14px}
+#lock{position:fixed;inset:0;z-index:100;background:var(--ai);color:#f7f0de;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px}
+#lock.show{display:flex}
+#lock h2{margin:0;letter-spacing:.3em}
+#dots{font-size:1.8rem;letter-spacing:.4em;min-height:2.4rem}
+#lmsg{min-height:1.5em;font-weight:700;color:#ffe9a8}
+.pad{display:grid;grid-template-columns:repeat(3,76px);gap:10px}
+.pad button{min-height:60px;border:2px solid #f7f0de;background:transparent;color:#f7f0de;border-radius:14px;font-size:1.5rem}
+.pad button:active{background:#f7f0de;color:var(--ai)}
+.shake{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+#install{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:30;background:var(--ai);color:#f7f0de;border-radius:14px;padding:12px;display:flex;align-items:center;gap:8px;transform:translateY(160%);transition:transform .6s ease;max-width:540px;margin:0 auto}
+#install.show{transform:none}
+#install p{margin:0;flex:1;font-size:.88rem}
+#install button{min-height:44px;min-width:44px;border-radius:10px;border:2px solid #f7f0de;background:transparent;color:#f7f0de;font-weight:700;padding:4px 10px}
+#install #iadd{background:#f7f0de;color:var(--ai)}
+:focus-visible{outline:3px solid #b36b00;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><b>あめごよみ</b><small>今日の雨をシェアするアプリ</small></div>
+  <div class="hbtns">
+    <button class="hb" id="bPass" type="button" aria-label="パスコード設定">🔒<br>パスコード設定</button>
+    <button class="hb" id="bHelp" type="button" aria-label="使い方・ヘルプ">❓<br>使い方・ヘルプ</button>
+  </div>
+</header>
+<main>
+  <p class="lead">いま降っている雨をえらぶと、ぴったりの「雨の名前」が見つかります。</p>
+  <div id="groups"></div>
+  <section class="result" aria-live="polite">
+    <div class="cardwrap"><canvas id="card" width="1080" height="1500" role="img" aria-label="雨の和名カード"></canvas></div>
+    <div class="row">
+      <button class="btn sub" id="bNext" type="button">🔁 ほかの雨の名前を見る</button>
+    </div>
+    <div class="row">
+      <button class="btn" id="bSave" type="button">📷 画像を保存</button>
+      <button class="btn" id="bShare" type="button">📱 X（旧Twitter）へシェア</button>
+    </div>
+    <p class="note" id="note"></p>
+  </section>
+</main>
+
+<div class="modal" id="mHelp" role="dialog" aria-modal="true" aria-labelledby="tHelp">
+  <div class="panel">
+    <h2 id="tHelp">❓ 使い方・ヘルプ</h2>
+    <h3>楽しみ方</h3>
+    <ol>
+      <li>「季節」「体感温度」「降り方」「時間帯」をタップして選びます。季節と時間帯は今の日時から自動で選ばれます。</li>
+      <li>選んだ条件にいちばん近い雨の名前が、下のカードに表示されます。</li>
+      <li>「ほかの雨の名前を見る」で、近い候補を順にめぐれます。</li>
+    </ol>
+    <h3>画像の保存とシェア</h3>
+    <ol>
+      <li>「画像を保存」を押すと、カードの画像が端末に保存されます。</li>
+      <li>「Xへシェア」を押すと、共有メニューが開きます。そのままXを選んでください。</li>
+      <li>共有メニューが出ない場合は、画像を保存し、文章をコピーしてXの投稿画面を開きます。保存した画像を添えて投稿してください。</li>
+    </ol>
+    <h3>パスコード（おまかせ）</h3>
+    <p>ヘッダーの「🔒」から4桁の数字を設定すると、アプリを開くたびに入力が必要になります。いつでも変更・解除できます。</p>
+    <h3>ホーム画面に追加</h3>
+    <p>ホーム画面に追加すると、アプリのようにすぐ開けます。</p>
+    <h3>雨の名前について</h3>
+    <p>国語辞典や歳時記で広く知られている言葉を収録しています。解説文は読みやすく短くまとめたものです。</p>
+    <div class="row"><button class="btn" type="button" data-close="mHelp">とじる</button></div>
+  </div>
+</div>
+
+<div class="modal" id="mPass" role="dialog" aria-modal="true" aria-labelledby="tPass">
+  <div class="panel">
+    <h2 id="tPass">🔒 パスコード設定</h2>
+    <p id="pState"></p>
+    <label id="lCur" for="iCur">いまのコード（4けた）<input id="iCur" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></label>
+    <label for="iNew">あたらしいコード（4けた）<input id="iNew" type="password" inputmode="numeric" maxlength="4" autocomplete="off"></label>
+    <p class="note" id="pMsg"></p>
+    <div class="row">
+      <button class="btn" id="pSet" type="button">設定する</button>
+      <button class="btn sub" id="pOff" type="button">解除する</button>
+    </div>
+    <div class="row"><button class="btn sub" type="button" data-close="mPass">とじる</button></div>
+  </div>
+</div>
+
+<div id="lock" role="dialog" aria-modal="true" aria-labelledby="tLock">
+  <h2 id="tLock">🔒 あめごよみ</h2>
+  <p>4けたのコードを入力してください</p>
+  <div id="dots" aria-live="polite">○○○○</div>
+  <div id="lmsg"></div>
+  <div class="pad" id="pad"></div>
+</div>
+
+<div id="install" role="region" aria-label="ホーム画面に追加">
+  <p id="itext">ホーム画面に追加してアプリとして使う</p>
+  <button id="iadd" type="button">追加</button>
+  <button id="iclose" type="button" aria-label="閉じる">✕</button>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  try { init(); } catch (e) { try { console.error(e); } catch (_) {} }
+});
+
+function init() {
+  var mem = {};
+  function sget(k) { try { var v = localStorage.getItem(k); if (v !== null) return v; } catch (e) {} return Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : null; }
+  function sset(k, v) { mem[k] = v; try { localStorage.setItem(k, v); } catch (e) {} }
+  function sdel(k) { delete mem[k]; try { localStorage.removeItem(k); } catch (e) {} }
+  function $(id) { return document.getElementById(id); }
+
+  /* ---------- 雨の和名データ（辞書・歳時記で一般に採録される言葉） ----------
+     [名称, 読み, 季節, 体感, 降り方, 時間帯, 解説]  空文字 = 指定なし */
+  var DB = [
+    ['催花雨','さいかう','春','涼暖','しとしと,長雨','','花の開くのをうながすように降る、春先の雨。つぼみがほころぶ気配を運んできます。'],
+    ['春雨','はるさめ','春','涼暖','しとしと,霧雨','','春に降る、細やかでやわらかな雨。草木をうるおし、景色をほんのりかすませます。'],
+    ['菜種梅雨','なたねづゆ','春','涼','長雨,しとしと','','菜の花のころ、春先にぐずぐずと降り続く雨。梅雨になぞらえた呼び名です。'],
+    ['木の芽流し','このめながし','春','涼暖','しとしと,ぽつぽつ','','木々の芽吹くころに降る雨。若い芽をそっと洗うように降ります。'],
+    ['花の雨','はなのあめ','春','涼暖','ぽつぽつ,しとしと','朝昼夕','花の咲くころに降る雨。花を濡らし、散るのを惜しむ心がにじみます。'],
+    ['卯の花腐し','うのはなくたし','春夏','暖','長雨,しとしと','','卯の花を腐らせるかのように降り続く、初夏の長雨。'],
+    ['五月雨','さみだれ','夏','暖暑','長雨,しとしと','','旧暦五月ごろに降り続く雨。梅雨のころの、止みそうで止まない雨です。'],
+    ['梅雨','つゆ','夏','暖暑','長雨,しとしと','','初夏に降り続く長い雨の季節。草木や紫陽花をうるおします。'],
+    ['翠雨','すいう','夏','暖','しとしと,ぽつぽつ,霧雨','朝昼','青葉に降りかかる雨。みずみずしい緑がいっそう深まります。'],
+    ['緑雨','りょくう','夏','暖','しとしと,ぽつぽつ','朝昼','新緑のころに降る雨。若葉の色を濃くしてゆきます。'],
+    ['喜雨','きう','夏','暑','ざあざあ,夕立','','日照りの続いたあとに降る、ありがたい雨。大地も人もほっと息をつきます。'],
+    ['甘霖','かんりん','夏','暑','ざあざあ,夕立,俄雨','','日照りのときに降る恵みの雨。待ちわびた潤いのたとえでもあります。'],
+    ['慈雨','じう','','暑暖','ざあざあ,しとしと','','草木をうるおし、育てる恵みの雨。ひさしぶりの雨にも使われます。'],
+    ['夕立','ゆうだち','夏','暑','夕立,ざあざあ','夕昼','夏の午後から夕方、急に激しく降ってすぐ上がる雨。'],
+    ['白雨','はくう','夏','暑','夕立,俄雨,ざあざあ','昼夕','夕立の別の呼び名。白く光るように降りそそぎます。'],
+    ['驟雨','しゅうう','夏','暑暖','俄雨,ざあざあ,夕立','','にわかに降りだして、まもなく止む激しい雨。'],
+    ['俄雨','にわかあめ','','','俄雨','','急に降りだして、まもなく止む雨。空を見上げる間もなく通り過ぎます。'],
+    ['村雨','むらさめ','夏秋','涼暖','俄雨,ぽつぽつ','','ひとしきり強く降っては止み、また降る雨。'],
+    ['狐の嫁入り','きつねのよめいり','','暖暑涼','俄雨,霧雨,ぽつぽつ','朝昼','日が照っているのに降る雨。ふしぎな昔話を思わせる天気雨です。'],
+    ['霧雨','きりさめ','','涼暖','霧雨','','霧のように細かく、音もなく降る雨。'],
+    ['小糠雨','こぬかあめ','','涼','霧雨,しとしと','','米ぬかのように細かな雨。しっとりと肩を濡らします。'],
+    ['秋雨','あきさめ','秋','涼','しとしと,長雨','','秋に降る、しめやかな雨。空気が澄み、季節が深まってゆきます。'],
+    ['秋霖','しゅうりん','秋','涼寒','長雨,しとしと','','秋に降り続く長雨。夏の名残を洗い流し、冬へ向かわせます。'],
+    ['時雨','しぐれ','秋冬','寒涼','ぽつぽつ,俄雨,しとしと','','晩秋から初冬、降ったり止んだりする通り雨。'],
+    ['小夜時雨','さよしぐれ','秋冬','寒涼','ぽつぽつ,しとしと','夜','夜に降る時雨。静かな夜更けに、ひとときだけ音を立てます。'],
+    ['冷雨','れいう','秋冬','寒','しとしと,長雨,ぽつぽつ','','身にしみるように冷たい雨。'],
+    ['氷雨','ひさめ','秋冬','寒','ぽつぽつ,しとしと','','冬の冷たい雨。凍える空気のなかで降ります。'],
+    ['寒九の雨','かんくのあめ','冬','寒','しとしと,ぽつぽつ','','寒に入って九日目に降る雨。豊作のしるしと言い伝えられています。'],
+    ['遣らずの雨','やらずのあめ','','','しとしと,ぽつぽつ','夕夜','帰ろうとする人を引き止めるかのように降る雨。'],
+    ['夜雨','やう','','','しとしと,ぽつぽつ','夜','夜に降る雨。屋根をたたく音に耳をすませたくなります。'],
+    ['涙雨','なみだあめ','','','ぽつぽつ,しとしと','','わずかに降る雨。悲しみの涙のように感じられる雨です。'],
+    ['篠突く雨','しのつくあめ','','','ざあざあ','','篠竹を束ねて突き下ろすように、激しく降る雨。']
+  ];
+
+  var CFG = [
+    { key: 'season', title: '季節', items: ['春','夏','秋','冬'] },
+    { key: 'temp', title: '体感温度', items: ['寒い','涼しい','暖かい','暑い'] },
+    { key: 'type', title: '降り方・性質', items: ['ぽつぽつ','しとしと','ざあざあ','俄雨','霧雨','夕立','長雨'] },
+    { key: 'time', title: '時間帯', items: ['朝','昼','夕方','夜'] }
+  ];
+  var TEMPCH = { '寒い': '寒', '涼しい': '涼', '暖かい': '暖', '暑い': '暑' };
+  var TIMECH = { '朝': '朝', '昼': '昼', '夕方': '夕', '夜': '夜' };
+
+  var now = new Date();
+  var mo = now.getMonth() + 1, hr = now.getHours();
+  var sel = {
+    season: mo >= 3 && mo <= 5 ? '春' : mo >= 6 && mo <= 8 ? '夏' : mo >= 9 && mo <= 11 ? '秋' : '冬',
+    temp: '',
+    type: 'しとしと',
+    time: hr >= 5 && hr < 10 ? '朝' : hr >= 10 && hr < 16 ? '昼' : hr >= 16 && hr < 19 ? '夕方' : '夜'
+  };
+  sel.temp = { '春': '暖かい', '夏': '暑い', '秋': '涼しい', '冬': '寒い' }[sel.season];
+
+  var cands = [], idx = 0, cardBlob = null;
+
+  /* ---------- 判定 ---------- */
+  function score(e) {
+    var s = 0;
+    if (e[2]) s += e[2].indexOf(sel.season) >= 0 ? 4 : -6; else s += 1;
+    if (e[3]) s += e[3].indexOf(TEMPCH[sel.temp]) >= 0 ? 2 : -2; else s += 0.5;
+    if (e[4]) s += e[4].split(',').indexOf(sel.type) >= 0 ? 4 : -3; else s += 1;
+    if (e[5]) s += e[5].indexOf(TIMECH[sel.time]) >= 0 ? 1.5 : -1.5; else s += 0.3;
+    return s;
+  }
+  function judge() {
+    var arr = DB.map(function (e, i) { return { e: e, s: score(e), i: i }; });
+    arr.sort(function (a, b) { return b.s - a.s || a.i - b.i; });
+    cands = arr.slice(0, 4).map(function (x) { return x.e; });
+    idx = 0;
+  }
+
+  /* ---------- チップ ---------- */
+  var gEl = $('groups');
+  function buildChips() {
+    if (!gEl) return;
+    gEl.innerHTML = '';
+    CFG.forEach(function (g) {
+      var box = document.createElement('div'); box.className = 'group';
+      var h = document.createElement('h2'); h.textContent = g.title; box.appendChild(h);
+      var cs = document.createElement('div'); cs.className = 'chips';
+      g.items.forEach(function (it) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'chip'; b.textContent = it;
+        b.setAttribute('aria-pressed', sel[g.key] === it ? 'true' : 'false');
+        b.addEventListener('click', function () {
+          sel[g.key] = it;
+          var all = cs.querySelectorAll('.chip');
+          for (var i = 0; i < all.length; i++) all[i].setAttribute('aria-pressed', all[i] === b ? 'true' : 'false');
+          if (navigator.vibrate) { try { navigator.vibrate(10); } catch (e) {} }
+          refresh();
+        });
+        cs.appendChild(b);
+      });
+      box.appendChild(cs); gEl.appendChild(box);
+    });
+  }
+
+  /* ---------- 日付 ---------- */
+  var KN = ['〇','一','二','三','四','五','六','七','八','九'];
+  function kan(n) {
+    if (n < 10) return KN[n];
+    if (n === 10) return '十';
+    if (n < 20) return '十' + KN[n - 10];
+    var t = Math.floor(n / 10), o = n % 10;
+    return KN[t] + '十' + (o ? KN[o] : '');
+  }
+  function dateTexts() {
+    var y = now.getFullYear(), ry = y - 2018;
+    var wa = '令和' + (ry === 1 ? '元' : kan(ry)) + '年' + kan(now.getMonth() + 1) + '月' + kan(now.getDate()) + '日';
+    var sei = String(y).split('').map(function (c) { return KN[+c]; }).join('') + '年';
+    return [wa, sei];
+  }
+
+  /* ---------- カード描画（縦書きを自前レイアウト） ---------- */
+  var FONT = '"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP","MS PMincho",serif';
+  var SMALL = 'ぁぃぅぇぉっゃゅょゎァィゥェォッャュョ';
+  function vch(ctx, ch, cx, y, size) {
+    ctx.font = size + 'px ' + FONT;
+    if ('、。，．'.indexOf(ch) >= 0) { ctx.fillText(ch, cx + size * 0.55, y - size * 0.5); return; }
+    if (SMALL.indexOf(ch) >= 0) { ctx.fillText(ch, cx + size * 0.1, y - size * 0.1); return; }
+    if ('ー〜―'.indexOf(ch) >= 0) { ctx.save(); ctx.translate(cx, y); ctx.rotate(Math.PI / 2); ctx.fillText(ch, 0, 0); ctx.restore(); return; }
+    ctx.fillText(ch, cx, y);
+  }
+  function vtext(ctx, text, cx, top, size, step) {
+    var y = top + size / 2;
+    for (var i = 0; i < text.length; i++) { vch(ctx, text[i], cx, y, size); y += step || size * 1.12; }
+  }
+  function wrap(text, n) {
+    var cols = [], cur = '';
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (cur.length >= n && '、。'.indexOf(c) < 0) { cols.push(cur); cur = ''; }
+      cur += c;
+    }
+    if (cur) cols.push(cur);
+    return cols;
+  }
+  function rng(seed) { var s = seed; return function () { s = (s * 16807) % 2147483647; return s / 2147483647; }; }
+
+  function drawCard() {
+    var cv = $('card'); if (!cv) return;
+    var ctx = cv.getContext('2d'); if (!ctx) return;
+    var W = 1080, H = 1500, r = cands[idx]; if (!r) return;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#f3ead6'; ctx.fillRect(0, 0, W, H);
+    var rd = rng(20261024), i;
+    for (i = 0; i < 5000; i++) { ctx.fillStyle = 'rgba(' + (120 + rd() * 60 | 0) + ',' + (95 + rd() * 50 | 0) + ',60,' + (rd() * 0.09).toFixed(3) + ')'; ctx.fillRect(rd() * W, rd() * H, 1 + rd() * 2.5, 1 + rd() * 2.5); }
+    ctx.lineWidth = 1;
+    for (i = 0; i < 380; i++) { var fx = rd() * W, fy = rd() * H; ctx.strokeStyle = 'rgba(255,250,235,' + (0.2 + rd() * 0.3).toFixed(2) + ')'; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.quadraticCurveTo(fx + rd() * 30 - 15, fy + rd() * 30 - 15, fx + rd() * 60 - 30, fy + rd() * 60 - 30); ctx.stroke(); }
+    var g = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, H * 0.78);
+    g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(110,80,40,0.28)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = '#1f2a44'; ctx.lineWidth = 4; ctx.strokeRect(46, 46, W - 92, H - 92);
+    ctx.lineWidth = 1.5; ctx.strokeRect(60, 60, W - 120, H - 120);
+
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#222';
+    var d = dateTexts();
+    vtext(ctx, d[0], W - 108, 150, 30, 36);
+    ctx.fillStyle = '#444'; vtext(ctx, d[1], W - 150, 150, 26, 31);
+
+    ctx.fillStyle = '#1f2a44';
+    var ns = Math.min(170, Math.floor(860 / r[0].length)), nx = W - 270;
+    vtext(ctx, r[0], nx, 190, ns, ns * 1.08);
+    ctx.fillStyle = '#333';
+    var rx = nx - ns / 2 - 50;
+    vtext(ctx, '（' + r[1] + '）', rx, 190, 40, 44);
+    ctx.fillStyle = '#222';
+    var cols = wrap(r[6], 15), dx = rx - 100;
+    cols.forEach(function (c, k) { vtext(ctx, c, dx - k * 66, 190, 40, 46); });
+
+    ctx.fillStyle = '#555';
+    var cond = [sel.season, sel.temp, sel.type, sel.time].join('・');
+    vtext(ctx, cond, 135, 190, 28, 32);
+
+    var sx = 120, sy = H - 330, ss = 130;
+    ctx.fillStyle = '#a8321f'; ctx.fillRect(sx, sy, ss, ss);
+    ctx.strokeStyle = '#f3ead6'; ctx.lineWidth = 3; ctx.strokeRect(sx + 7, sy + 7, ss - 14, ss - 14);
+    ctx.fillStyle = '#f7ecd4';
+    vtext(ctx, 'あめ', sx + ss * 0.7, sy + 14, 46, 52);
+    vtext(ctx, 'ごよみ', sx + ss * 0.3, sy + 14, 36, 36);
+
+    ctx.fillStyle = '#444'; ctx.font = '28px ' + FONT; ctx.textBaseline = 'alphabetic';
+    ctx.fillText('あめごよみ　今日の雨をシェアするアプリ', W / 2, H - 100);
+
+    cardBlob = null;
+    try { cv.toBlob(function (b) { cardBlob = b; }, 'image/png'); } catch (e) {}
+  }
+
+  function refresh() { judge(); drawCard(); setNote(''); }
+  function setNote(t) { var n = $('note'); if (n) n.textContent = t; }
+
+  /* ---------- 保存・シェア ---------- */
+  function fname() { return 'ame-goyomi-' + now.getFullYear() + ('0' + (now.getMonth() + 1)).slice(-2) + ('0' + now.getDate()).slice(-2) + '.png'; }
+  function saveImg() {
+    try {
+      var cv = $('card'), a = document.createElement('a');
+      a.href = cv.toDataURL('image/png'); a.download = fname();
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      return true;
+    } catch (e) { return false; }
+  }
+  function shareText() {
+    var r = cands[idx]; if (!r) return '';
+    var u = ''; try { if (/^https?:/.test(location.href)) u = '\n' + location.href.split('#')[0]; } catch (e) {}
+    return '今日の雨は「' + r[0] + '」（' + r[1] + '）。\n' + r[6] + '\n#あめごよみ' + u;
+  }
+  var bSave = $('bSave'), bShare = $('bShare'), bNext = $('bNext');
+  if (bSave) bSave.addEventListener('click', function () { setNote(saveImg() ? '📷 画像を保存しました' : '保存できませんでした。画像を長押しして保存してください。'); });
+  if (bNext) bNext.addEventListener('click', function () { idx = (idx + 1) % cands.length; drawCard(); setNote('🔁 ' + (idx + 1) + ' / ' + cands.length + ' 番目の候補です'); });
+  if (bShare) bShare.addEventListener('click', function () {
+    var text = shareText();
+    try {
+      if (cardBlob && navigator.share && navigator.canShare) {
+        var f = new File([cardBlob], fname(), { type: 'image/png' });
+        if (navigator.canShare({ files: [f] })) {
+          navigator.share({ files: [f], text: text }).then(function () { setNote('📱 共有メニューを開きました'); }).catch(function (e) { if (e && e.name !== 'AbortError') fallback(text); });
+          return;
+        }
+      }
+    } catch (e) {}
+    fallback(text);
+  });
+  function fallback(text) {
+    var ok = saveImg(), copied = false;
+    try { if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(text); copied = true; } } catch (e) {}
+    setNote((ok ? '① 画像を保存しました\n' : '① 画像を長押しして保存してください\n') + (copied ? '② 文章をコピーしました\n' : '') + '③ Xの投稿画面で、保存した画像を添えて投稿してください');
+    try { window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(text), '_blank', 'noopener'); } catch (e) {}
+  }
+
+  /* ---------- モーダル ---------- */
+  function openM(id) { var m = $(id); if (m) { m.classList.add('show'); var b = m.querySelector('button,input'); if (b) { try { b.focus(); } catch (e) {} } } }
+  function closeM(id) { var m = $(id); if (m) m.classList.remove('show'); }
+  var cl = document.querySelectorAll('[data-close]');
+  for (var ci = 0; ci < cl.length; ci++) (function (b) { b.addEventListener('click', function () { closeM(b.getAttribute('data-close')); }); })(cl[ci]);
+  ['mHelp', 'mPass'].forEach(function (id) { var m = $(id); if (m) m.addEventListener('click', function (e) { if (e.target === m) closeM(id); }); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeM('mHelp'); closeM('mPass'); } });
+  var bHelp = $('bHelp'); if (bHelp) bHelp.addEventListener('click', function () { openM('mHelp'); });
+
+  /* ---------- パスコード ---------- */
+  function code() { return sget('ame_pass') || ''; }
+  var lockEl = $('lock'), entry = '';
+  function showDots() { var d = $('dots'); if (d) d.textContent = '●●●●'.slice(0, entry.length) + '○○○○'.slice(0, 4 - entry.length); }
+  function lock() { if (!code() || !lockEl) return; entry = ''; showDots(); var m = $('lmsg'); if (m) m.textContent = ''; lockEl.classList.add('show'); }
+  var pad = $('pad');
+  if (pad) {
+    ['1','2','3','4','5','6','7','8','9','消す','0','⌫'].forEach(function (k) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = k;
+      if (k === '消す') b.style.fontSize = '1rem';
+      b.addEventListener('click', function () {
+        var m = $('lmsg'); if (m) m.textContent = '';
+        if (k === '消す') entry = '';
+        else if (k === '⌫') entry = entry.slice(0, -1);
+        else if (entry.length < 4) entry += k;
+        showDots();
+        if (entry.length === 4) {
+          if (entry === code()) { lockEl.classList.remove('show'); entry = ''; }
+          else {
+            if (m) m.textContent = '✕ コードがちがいます';
+            if (navigator.vibrate) { try { navigator.vibrate(60); } catch (e) {} }
+            var dd = $('dots'); if (dd) { dd.classList.remove('shake'); void dd.offsetWidth; dd.classList.add('shake'); }
+            setTimeout(function () { entry = ''; showDots(); }, 500);
+          }
+        }
+      });
+      pad.appendChild(b);
+    });
+  }
+  function passUI() {
+    var on = !!code();
+    var s = $('pState'); if (s) s.textContent = on ? '現在：🔒 ロックあり。変更・解除ができます。' : '現在：🔓 ロックなし。4けたの数字を決めると、起動時にロックされます。';
+    var lc = $('lCur'); if (lc) lc.style.display = on ? 'block' : 'none';
+    var po = $('pOff'); if (po) po.style.display = on ? 'block' : 'none';
+    var ps = $('pSet'); if (ps) ps.textContent = on ? '変更する' : '設定する';
+    ['iCur', 'iNew'].forEach(function (id) { var e = $(id); if (e) e.value = ''; });
+    var m = $('pMsg'); if (m) m.textContent = '';
+  }
+  function pmsg(t) { var m = $('pMsg'); if (m) m.textContent = t; }
+  var bPass = $('bPass'); if (bPass) bPass.addEventListener('click', function () { passUI(); openM('mPass'); });
+  var pSet = $('pSet'), pOff = $('pOff');
+  if (pSet) pSet.addEventListener('click', function () {
+    var cur = ($('iCur') || {}).value || '', nw = ($('iNew') || {}).value || '';
+    if (code() && cur !== code()) { pmsg('✕ いまのコードがちがいます'); return; }
+    if (!/^\d{4}$/.test(nw)) { pmsg('✕ あたらしいコードは4けたの数字で入力してください'); return; }
+    sset('ame_pass', nw); passUI(); pmsg('✓ コードを設定しました');
+  });
+  if (pOff) pOff.addEventListener('click', function () {
+    var cur = ($('iCur') || {}).value || '';
+    if (cur !== code()) { pmsg('✕ いまのコードがちがいます'); return; }
+    sdel('ame_pass'); passUI(); pmsg('✓ ロックを解除しました');
+  });
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') lock(); });
+
+  /* ---------- インストール案内 ---------- */
+  var inst = $('install'), deferred = null;
+  function showInstall() { if (inst && sget('ame_inst_closed') !== '1') setTimeout(function () { inst.classList.add('show'); }, 1200); }
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; showInstall(); });
+  var standalone = false;
+  try { standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone; } catch (e) {}
+  var ios = /iphone|ipad|ipod/i.test(navigator.userAgent || '');
+  if (ios && !standalone) { var it = $('itext'), ia = $('iadd'); if (it) it.textContent = 'ホーム画面に追加：共有ボタン →「ホーム画面に追加」'; if (ia) ia.style.display = 'none'; showInstall(); }
+  var iadd = $('iadd'), iclose = $('iclose');
+  if (iadd) iadd.addEventListener('click', function () {
+    if (deferred) { try { deferred.prompt(); } catch (e) {} deferred = null; }
+    if (inst) inst.classList.remove('show'); sset('ame_inst_closed', '1');
+  });
+  if (iclose) iclose.addEventListener('click', function () { if (inst) inst.classList.remove('show'); sset('ame_inst_closed', '1'); });
+
+  /* ---------- 起動 ---------- */
+  buildChips();
+  refresh();
+  lock();
+  try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(drawCard); } catch (e) {}
+  try { if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(function () {}); } catch (e) {}
+}
+</script>
+<footer style="text-align: center; font-size: 0.75rem; color: #888; margin-top: 3rem; padding: 1rem 0.5rem; line-height: 1.5;">
+  <p style="margin-bottom: 0.5rem;">【ご利用について】</p>
+  <p style="margin-bottom: 0.5rem;">本アプリの利用に伴うトラブルやデータ損失等について、開発者は一切の責任を負いかねます。</p>
+  <p style="margin-bottom: 0.5rem;">ご意見・不具合のご報告は X（<a href="https://x.com/lblt_labo" target="_blank" rel="noopener" style="color: #666; text-decoration: underline;">@lblt_labo</a>）までお願いいたします。</p>
+  <p style="margin-top: 0.5rem;"><a href="https://ofuse.me/lbltlabo/letter" target="_blank" rel="noopener noreferrer" style="color: #666; text-decoration: underline;">☕️ 開発者を応援する / メッセージを送る</a></p>
+</footer>
+</body>
+</html>
